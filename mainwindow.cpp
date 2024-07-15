@@ -6,142 +6,164 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
-    /*QList<QHostAddress> a = QNetworkInterface::allAddresses();
-    for(int i=0; i<a.count(); i++)
-
-      {
-          if(!a[i].isLoopback())
-              if (a[i].protocol() == QAbstractSocket::IPv4Protocol && a[i].isGlobal())
-            qDebug() << a[i].toString();
-
-      }*/
     ui->setupUi(this);
     udps= new QUdpSocket();
-    mydatagramm = new class mydatagramm();
-    mydatagramm->addata();
-    udps->bind(QHostAddress::AnyIPv4,10000);
+    mydatagramm.addata();
+    myport=10000;
+    AMport=10000;
+    udps->bind(QHostAddress::AnyIPv4,myport);
     connect(udps,SIGNAL(readyRead()),SLOT(Read()));
-    sendmess(0,0,QHostAddress::Broadcast);
+    sendmess(ScanMessage,0,QHostAddress::Broadcast,AMport);
 }
 
 MainWindow::~MainWindow()
 {
-    delete mydatagramm;
     delete ui;
 }
 
-void MainWindow::on_pushButton_clicked()
+void MainWindow::on_sendMButton_clicked()
 {
-    QHostAddress addr = QHostAddress::Broadcast;
-    if(ui->checkBox->isCheckable()){
-        addr=QHostAddress(ui->lineEdit_5->text());
-    }
-    if (L==0){
-        sendmess(1,3,QHostAddress::Broadcast);
+    QHostAddress addr;
+    qint16 port=AMport;
+    if(ui->isManualCheckBox->isChecked()){
+        addr=QHostAddress(ui->LineEditManualSet_IpPort->text().left(ui->LineEditManualSet_IpPort->text().indexOf(":")));
+        port=ui->LineEditManualSet_IpPort->text().right(ui->LineEditManualSet_IpPort->text().size()-ui->LineEditManualSet_IpPort->text().indexOf(":")-1).toShort();
+        if (L==0){
+            sendmess(DataMessage,3,addr,port);
+        }
+        else{
+            sendmess(LimitedDataMessage,L,addr,port);
+        }
     }
     else{
-        sendmess(3,L,QHostAddress::Broadcast);
+        for (int i=1;i<ui->IPinWebListWidget->count();i++) {
+            addr=QHostAddress(ui->IPinWebListWidget->item(i)->data(0).toString());
+            if (L==0){
+                sendmess(DataMessage,3,addr,port);
+            }
+            else{
+                sendmess(LimitedDataMessage,L,addr,port);
+            }
+        }
     }
-    ui->textBrowser->append("me:<font color=red> "+ui->lineEdit->text()+"</font>");
-    ui->lineEdit->clear();
+    ui->chatTextBrowser->append("me:<font color=red> "+ui->MessageLineEdit->text()+"</font>");
+    ui->MessageLineEdit->clear();
 
 }
 void MainWindow::Read()
 {
-    QByteArray resiveData;
+    QByteArray ressivedData;
     QHostAddress sender;
     sender.toIPv4Address();
     quint16 senderPort;
     while (udps->hasPendingDatagrams()){
-        resiveData.resize(udps->pendingDatagramSize());
-        udps->readDatagram(resiveData.data(),resiveData.size(),&sender,&senderPort);
-        QList<QListWidgetItem *> items = ui->listWidget->findItems(sender.toString(),Qt::MatchExactly);
-        char h=resiveData.at(0);
-        int npack = resiveData.mid(1,resiveData.indexOf(":d:")-1).toInt()-1;
+
+        ressivedData.resize(udps->pendingDatagramSize());
+        udps->readDatagram(ressivedData.data(),ressivedData.size(),&sender,&senderPort);
+        QList<QListWidgetItem *> items = ui->IPinWebListWidget->findItems(sender.toString()+":"+QString("%1").arg(senderPort),Qt::MatchExactly);
+        mydatagramm.ressiveData(ressivedData);
+        int h=mydatagramm.getHeadlear()-'0';
+        int npack = mydatagramm.getNumberOfMessage().toInt()-1;
         QString str;
         switch(h){
-        case '0':
+        case ScanMessage:
             if(items.isEmpty()){
-                ui->listWidget->addItem(QString(sender.toString()));
+                items = ui->IPinWebListWidget->findItems(sender.toString(),Qt::MatchContains);
+                if(!items.isEmpty()){
+                    items.first()->setText(sender.toString()+":"+QString("%1").arg(senderPort));
+                }
+                else{
+                ui->IPinWebListWidget->addItem(sender.toString()+":"+QString("%1").arg(senderPort));
+                }
             }
-            sendmess(2,0,sender);
+            sendmess(AnsverMessage,0,QHostAddress::Broadcast,10000);
             break;
-        case '1':
-            if(ui->listWidget->item(0)->data(0).toString()==sender.toString() && !ui->checkBox->isChecked()) break;
-            ui->textBrowser->append(resiveData.mid(resiveData.indexOf(":d:")+3,resiveData.indexOf(":d:",resiveData.indexOf(":d:")+1)-resiveData.indexOf(":d:")-3));
-            sendmess(4,0,sender);
+        case DataMessage:
+            if(ui->IPinWebListWidget->item(0)->data(0).toString()==sender.toString() && !ui->isManualCheckBox->isChecked()) break;
+            ui->chatTextBrowser->append(mydatagramm.getData());
+            sendmess(ReceiptMessage,0,sender,senderPort);
             break;
-        case '2':
+        case AnsverMessage:
             if(items.isEmpty()){
-                ui->listWidget->addItem(sender.toString());
+                ui->IPinWebListWidget->addItem(sender.toString()+":"+QString("%1").arg(senderPort));
             }
             break;
-        case '3':
-            if(ui->listWidget->item(0)->data(0).toString()==sender.toString() && !ui->checkBox->isChecked()) break;
-            str=str.append(resiveData.mid(resiveData.indexOf(":d:")+3,resiveData.indexOf(":d:",resiveData.indexOf(":d:")+1)-resiveData.indexOf(":d:")-3));
+        case LimitedDataMessage:
+            if(ui->IPinWebListWidget->item(0)->data(0).toString()==sender.toString() && !ui->isManualCheckBox->isChecked()) break;
+            str=str.append(mydatagramm.getData());
             for (npack;npack>0;npack--) {
-                udps->readDatagram(resiveData.data(),resiveData.size(),&sender,&senderPort);
-                str=str.append(resiveData.mid(resiveData.indexOf(":d:")+3,resiveData.indexOf(":d:",resiveData.indexOf(":d:")+1)-resiveData.indexOf(":d:")-3));
+                udps->readDatagram(ressivedData.data(),ressivedData.size(),&sender,&senderPort);
+                mydatagramm.ressiveData(ressivedData);
+                str=str.append(mydatagramm.getData());
             }
-            ui->textBrowser->append(str);
-            sendmess(4,0,sender);
+            ui->chatTextBrowser->append(str);
+            sendmess(ReceiptMessage,0,sender,senderPort);
             break;
-        case '4':
-            ui->textBrowser->append("Ressived");
+        case ReceiptMessage:
+            ui->chatTextBrowser->append("Ressived");
             break;
         }
-        //ui->textBrowser->append("<font color=green>"+QString(resiveData)+"("+sender.toString()+":"+QString("%1").arg(senderPort)+")</font>");
     }
 }
-void MainWindow::sendmess(int k, int n, QHostAddress addr){
-    udps->localAddress();
-    QByteArray transmitData;//битовая строка которую отправляем
+void MainWindow::sendmess(int k, int n, QHostAddress addr,quint16 port){
     int j=0;
     switch (k) {
-    case 0: //служебное сообщение для проверки "кто в сети"
-        mydatagramm->head='0';
-        mydatagramm->num='0';
-        udps->writeDatagram(mydatagramm->toByteArr(), addr,10000);
+    case ScanMessage: //служебное сообщение для проверки "кто в сети"
+        mydatagramm.setData(ScanMessage,QString(j),"");
+        udps->writeDatagram(mydatagramm.toByteArr(), addr,port);
         break;
-    case 1: // для отправки данных
-        mydatagramm->head='1';
-        mydatagramm->num='0';
-        mydatagramm->addata(ui->lineEdit->text());
-        udps->writeDatagram(mydatagramm->toByteArr(), addr,10000);
+    case DataMessage: // для отправки данных
+
+        mydatagramm.setData(DataMessage,QString(j),ui->MessageLineEdit->text());
+        udps->writeDatagram(mydatagramm.toByteArr(), addr,port);
         break;
-    case 2: //для ответа "в сети"
-        mydatagramm->head='2';
-        mydatagramm->num='0';
-        udps->writeDatagram(mydatagramm->toByteArr(), addr,10000);
+    case AnsverMessage: //для ответа "в сети"
+        mydatagramm.setData(AnsverMessage,QString(j),ui->MessageLineEdit->text());
+        udps->writeDatagram(mydatagramm.toByteArr(), addr,port);
         break;
-    case 3: //жля сообщений кот. больше чем длинна
-        mydatagramm->head='3';
-        j=ui->lineEdit->text().size()/n;
+    case LimitedDataMessage: //жля сообщений кот. больше чем введенная длинна
+
+        j=ui->MessageLineEdit->text().size()/n;
         for (int i=0;i<j;i++) {
-            mydatagramm->num=j-i+'0';
-            mydatagramm->addata(ui->lineEdit->text().mid(i*n,n),n);
-            udps->writeDatagram(mydatagramm->toByteArr(), addr,10000);
+            mydatagramm.setData(LimitedDataMessage,QString("%1").arg(j-i),ui->MessageLineEdit->text().mid(i*n,n));
+            udps->writeDatagram(mydatagramm.toByteArr(), addr,port);
         }
         break;
-     case 4://для квитанции получения
-        mydatagramm->head='4';
-        mydatagramm->num='0';
-        udps->writeDatagram(mydatagramm->toByteArr(), addr,10000);
+     case ReceiptMessage://для квитанции получения
+        mydatagramm.setData(ReceiptMessage,QString(j),"");
+        udps->writeDatagram(mydatagramm.toByteArr(), addr,port);
         break;
     default:
-        ui->textBrowser->append("errorMes");
+        ui->chatTextBrowser->append("errorMes");
         break;
     }
 }
 
-void MainWindow::on_pushButton_3_clicked()
+void MainWindow::on_setNumberOfBytsButton_clicked()
 {
-    L=ui->lineEdit_4->text().toInt();
+    L=ui->NumberOfBytesLineEdit->text().toInt();
 }
 
 
 
-void MainWindow::on_pushButton_4_clicked()
+void MainWindow::on_scanButton_clicked()
 {
-    sendmess(0,0,QHostAddress::Broadcast);
+    sendmess(ScanMessage,0,QHostAddress::Broadcast,myport);
+}
+
+void MainWindow::on_ManualSetButton_myport_clicked()
+{
+    if(myport=ui->LineEditManualSet_myport->text().toInt()<64000){
+    myport=ui->LineEditManualSet_myport->text().toShort();
+    udps->close();
+    udps->bind(QHostAddress::AnyIPv4,myport);
+    connect(udps,SIGNAL(readyRead()),SLOT(Read()));
+    sendmess(ScanMessage,0,QHostAddress::Broadcast,myport);
+    }
+    else {ui->LineEditManualSet_myport->text()="PortErr";}
+}
+
+void MainWindow::on_ManualSetButton_port_clicked()
+{
+    AMport=ui->LineEditManualSet_port->text().toShort();
 }

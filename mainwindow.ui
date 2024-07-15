@@ -14,7 +14,7 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <widget class="QPushButton" name="pushButton">
+   <widget class="QPushButton" name="sendMButton">
     <property name="geometry">
      <rect>
       <x>10</x>
@@ -24,10 +24,10 @@
      </rect>
     </property>
     <property name="text">
-     <string>Send messedge</string>
+     <string>Отправить</string>
     </property>
    </widget>
-   <widget class="QLineEdit" name="lineEdit">
+   <widget class="QLineEdit" name="MessageLineEdit">
     <property name="geometry">
      <rect>
       <x>10</x>
@@ -37,7 +37,7 @@
      </rect>
     </property>
    </widget>
-   <widget class="QTextBrowser" name="textBrowser">
+   <widget class="QTextBrowser" name="chatTextBrowser">
     <property name="geometry">
      <rect>
       <x>10</x>
@@ -47,11 +47,11 @@
      </rect>
     </property>
    </widget>
-   <widget class="QLineEdit" name="lineEdit_4">
+   <widget class="QLineEdit" name="NumberOfBytesLineEdit">
     <property name="geometry">
      <rect>
-      <x>190</x>
-      <y>480</y>
+      <x>10</x>
+      <y>500</y>
       <width>113</width>
       <height>20</height>
      </rect>
@@ -60,30 +60,30 @@
    <widget class="QLabel" name="label_3">
     <property name="geometry">
      <rect>
-      <x>190</x>
-      <y>460</y>
-      <width>111</width>
+      <x>10</x>
+      <y>480</y>
+      <width>161</width>
       <height>16</height>
      </rect>
     </property>
     <property name="text">
-     <string>Numner of bits</string>
+     <string>Количество байт для сообщения</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_3">
+   <widget class="QPushButton" name="setNumberOfBytsButton">
     <property name="geometry">
      <rect>
-      <x>190</x>
-      <y>500</y>
+      <x>10</x>
+      <y>530</y>
       <width>101</width>
       <height>23</height>
      </rect>
     </property>
     <property name="text">
-     <string>Vvesti</string>
+     <string>Ввести</string>
     </property>
    </widget>
-   <widget class="QListWidget" name="listWidget">
+   <widget class="QListWidget" name="IPinWebListWidget">
     <property name="geometry">
      <rect>
       <x>390</x>
@@ -93,20 +93,20 @@
      </rect>
     </property>
    </widget>
-   <widget class="QCheckBox" name="checkBox">
+   <widget class="QCheckBox" name="isManualCheckBox">
     <property name="geometry">
      <rect>
       <x>390</x>
       <y>420</y>
-      <width>91</width>
+      <width>121</width>
       <height>17</height>
      </rect>
     </property>
     <property name="text">
-     <string>to IP addres</string>
+     <string>отправить вручную</string>
     </property>
    </widget>
-   <widget class="QLineEdit" name="lineEdit_5">
+   <widget class="QLineEdit" name="LineEditManualSet_IpPort">
     <property name="geometry">
      <rect>
       <x>390</x>
@@ -121,15 +121,15 @@
      <rect>
       <x>390</x>
       <y>440</y>
-      <width>91</width>
+      <width>81</width>
       <height>16</height>
      </rect>
     </property>
     <property name="text">
-     <string>Set IP to send</string>
+     <string>Адресс:Порт</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_4">
+   <widget class="QPushButton" name="scanButton">
     <property name="geometry">
      <rect>
       <x>390</x>
@@ -139,7 +139,80 @@
      </rect>
     </property>
     <property name="text">
-     <string>scan</string>
+     <string>Просканировать</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="ManualSetButton_myport">
+    <property name="geometry">
+     <rect>
+      <x>190</x>
+      <y>490</y>
+      <width>101</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Ввести</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_4">
+    <property name="geometry">
+     <rect>
+      <x>190</x>
+      <y>450</y>
+      <width>161</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Изменить порт приема</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="LineEditManualSet_myport">
+    <property name="geometry">
+     <rect>
+      <x>190</x>
+      <y>470</y>
+      <width>113</width>
+      <height>20</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="LineEditManualSet_port">
+    <property name="geometry">
+     <rect>
+      <x>190</x>
+      <y>540</y>
+      <width>113</width>
+      <height>20</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_5">
+    <property name="geometry">
+     <rect>
+      <x>190</x>
+      <y>510</y>
+      <width>161</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Изменить порт автоматической
+ отправки</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="ManualSetButton_port">
+    <property name="geometry">
+     <rect>
+      <x>190</x>
+      <y>560</y>
+      <width>101</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Ввести</string>
     </property>
    </widget>
   </widget>
