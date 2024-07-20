@@ -189,7 +189,7 @@ void MainWindow::sendmess(int k, int n, QHostAddress addr,quint16 port){
     case FileMessage://для передачи файлов
         if (n==0){n=8192;}
         file.setFileName(ui->FilePathLineEdit->text());
-        j=file.size()/n+1;
+        j=file.size()/n;
         file.open(QIODevice::ReadOnly);
         transmit.setDevice(&file);
         while(!file.atEnd()){;

@@ -6,6 +6,8 @@
 
 QT       += core gui
 QT += network
+QT   +=   sql
+
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -15,9 +17,11 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-        mydatagramm.cpp
+        mydatagramm.cpp \
+        readthread.cpp
 
 HEADERS  += mainwindow.h \
-    mydatagramm.h
+    mydatagramm.h \
+    readthread.h
 
 FORMS    += mainwindow.ui

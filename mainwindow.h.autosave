@@ -12,6 +12,7 @@
 #include<QSql>
 #include<QSqlDatabase>
 #include<QSqlQuery>
+#include<QThread>
 #include "mydatagramm.h"
 
 namespace Ui {
@@ -49,6 +50,8 @@ private slots:
     void on_treeView_doubleClicked(const QModelIndex &index);
 
 private:
+    QThread readthread;
+    QThread sendthread;
     Ui::MainWindow *ui;
     QHostAddress address;
     QUdpSocket *udps;// указатель на сокет
