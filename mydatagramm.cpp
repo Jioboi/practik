@@ -3,31 +3,28 @@
 #include <QDataStream>
 mydatagramm::mydatagramm()
 {
-    head='0';
+    head=1;
     num="0";
     data="";
 }
-void mydatagramm::setData(int Head,QString Num,QString Data)
+void mydatagramm::setData(int Head,QString Num,QString Data,QHostAddress IpToSend,qint16 PortToSend)
 {
-    head=Head+'0';
+    head=Head;
     num=Num;
     data.clear();
     data.append(Data);
+    iptosend=IpToSend;
+    porttosend=PortToSend;
 }
 QByteArray mydatagramm::toByteArr(){
 
     QByteArray output; ;//1 на заголовок  + 1 на номер пакета + 1 на длину данных + L на данные + 1 на конец строки
 
     output.append(head);
-    if(head=='0'||head=='2'){
-        return output;
-    }
     output.append(num);
     output.append(datasplitter);
     output.append(data.data());
     output.append(datasplitter);
-    //int r=output.size()+sizeof (int);
-    //output.append(QString(r));
     return output;
 }
 void mydatagramm::addata(){
