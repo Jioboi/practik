@@ -12,7 +12,9 @@
 #include<QSql>
 #include<QSqlDatabase>
 #include<QSqlQuery>
+#include<QThread>
 #include "mydatagramm.h"
+#include"sendthread.h"
 
 namespace Ui {
 class MainWindow;
@@ -28,7 +30,6 @@ public:
 
 public slots:
     void Read();//чтение данных
-    void TimrOut();//истечение таймера
 private slots:
     void on_sendMButton_clicked();// здесь будет оправка данных по нажатию на кнопку
     void sendmess(int k, int lehgth, QHostAddress addr,quint16 port);//фукия отправки данных
@@ -49,11 +50,14 @@ private slots:
     void on_treeView_doubleClicked(const QModelIndex &index);
 
 private:
+    sendthread *sendthread;
     Ui::MainWindow *ui;
     QHostAddress address;
-    QUdpSocket *udps;// указатель на сокет
+    QUdpSocket *udps;
     mydatagramm *mydatagramm; //  датаграмма
     QQueue<QByteArray> DatagrammBuffer;
+    QList<QByteArray> DatagrammPrevios;
+    QList<int> countNumMess;
     QQueue<QString> IPBuffer;
     QQueue<short> PortBuffer;
     QSqlDatabase ChatDB;
@@ -68,6 +72,8 @@ private:
         ReceiptMessage,
         FileMessage,
         sendFile,
+        ReqvestMess,
+        ReqvestMessAnsv
     };
     qint16 myport;
     qint16 AMport;

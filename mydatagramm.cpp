@@ -7,14 +7,12 @@ mydatagramm::mydatagramm()
     num="0";
     data="";
 }
-void mydatagramm::setData(int Head,QString Num,QString Data,QHostAddress IpToSend,qint16 PortToSend)
+void mydatagramm::setData(int Head,QString Num,QString Data)
 {
     head=Head;
     num=Num;
     data.clear();
     data.append(Data);
-    iptosend=IpToSend;
-    porttosend=PortToSend;
 }
 QByteArray mydatagramm::toByteArr(){
 

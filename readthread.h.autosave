@@ -1,0 +1,14 @@
+#ifndef READTHREAD_H
+#define READTHREAD_H
+
+#include<QThread>
+#include <QTimer>
+class sendthread : public QThread
+{
+    void run() override;
+public:
+    sendthread();
+        QTimer *timer
+};
+
+#endif // READTHREAD_H

@@ -25,6 +25,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ChatDB.setPassword("12345");
     ChatDB.open();
     chatquery.prepare("INSERT INTO ChatDB(transmitterIP_Port,ressiverIP_Port,TypeOfMessage,DATA)" "VALUES (:transmitterIP_Port,:ressiverIP_Port,:TypeOfMessage,:DATA)");
+    sendthread = new class sendthread(timer,udps,&DatagrammBuffer,&IPBuffer,&PortBuffer,&DatagrammPrevios);
+    sendthread->start();
 }
 
 MainWindow::~MainWindow()
@@ -110,8 +112,17 @@ void MainWindow::Read()
         case LimitedDataMessage:
             if(ui->IPinWebListWidget->item(0)->data(0).toString()==sender.toString() && !ui->isManualCheckBox->isChecked()) break;
             str=str.append(mydatagramm->getData());
-            //ui->chatTextBrowser->append(str);
+            countNumMess.append(npack);
             if(npack==0){
+                int i = countNumMess.takeFirst();
+                while (!countNumMess.isEmpty()) {
+                    int j = countNumMess.takeFirst();
+                    if(i!=j+1){
+                        sendmess(ReqvestMess,i-1,sender,senderPort);
+                        break;
+                    }
+                    i=j;
+                }
                 ui->chatTextBrowser->append(str);
                 sendmess(ReceiptMessage,0,sender,senderPort);
                 chatquery.bindValue(":transmitterIP_Port",ui->IPinWebListWidget->item(0)->data(0).toString());
@@ -129,24 +140,43 @@ void MainWindow::Read()
             RessivesdFile.setFileName("ressived.txt");
             RessivesdFile.open(QIODevice::Append);
             out.setDevice(&RessivesdFile);
+            if(mydatagramm->getData()=="EndOfFile"){
+                int i = countNumMess.takeFirst();
+                while (!countNumMess.isEmpty()) {
+                    int j = countNumMess.takeFirst();
+                    if(i!=j-1){
+                        sendmess(ReqvestMess,i+1,sender,senderPort);
+                        break;
+                    }
+                    i=j;
+                }
+                RessivesdFile.close();
+                break;
+            }
             out<<mydatagramm->getData();
             break;
+        case ReqvestMess:
+            sendmess(ReqvestMessAnsv,npack,sender,senderPort);
+            break;
+        case ReqvestMessAnsv:
+            str.insert(npack,mydatagramm->getData());
         }
     }
 }
-void MainWindow::sendmess(int k, int n, QHostAddress addr,quint16 port){
+void MainWindow::sendmess(int k, int n, QHostAddress addr,quint16 port)
+{
     int j=0;
     QTextStream transmit;
     QFile file;
     switch (k) {
     case ScanMessage: //служебное сообщение для проверки "кто в сети"
-        mydatagramm->setData(ScanMessage,QString(j),"",addr,port);
+        mydatagramm->setData(ScanMessage,QString(j),"");
         DatagrammBuffer.enqueue(mydatagramm->toByteArr());
         IPBuffer.enqueue(addr.toString());
         PortBuffer.enqueue(port);
         break;
     case DataMessage: // для отправки данных
-        mydatagramm->setData(DataMessage,QString(j),ui->MessageLineEdit->text(),addr,port);
+        mydatagramm->setData(DataMessage,QString(j),ui->MessageLineEdit->text());
         chatquery.bindValue(":transmitterIP_Port",ui->IPinWebListWidget->item(0)->data(0).toString());
         chatquery.bindValue(":ressiverIP_Port",addr.toString()+":"+QString("%1").arg(port));
         chatquery.bindValue(":TypeOfMessage",mydatagramm->getHeadlear());
@@ -157,7 +187,7 @@ void MainWindow::sendmess(int k, int n, QHostAddress addr,quint16 port){
         PortBuffer.enqueue(port);
         break;
     case AnsverMessage: //для ответа "в сети"
-        mydatagramm->setData(AnsverMessage,QString(j),ui->MessageLineEdit->text(),addr,port);
+        mydatagramm->setData(AnsverMessage,QString(j),ui->MessageLineEdit->text());
         DatagrammBuffer.enqueue(mydatagramm->toByteArr());
         IPBuffer.enqueue(addr.toString());
         PortBuffer.enqueue(port);
@@ -173,7 +203,7 @@ void MainWindow::sendmess(int k, int n, QHostAddress addr,quint16 port){
             j++;
         }
         for (int i=0;i<j;i++) {
-            mydatagramm->setData(LimitedDataMessage,QString("%1").arg(j-i-1),ui->MessageLineEdit->text().mid(i*n,n),addr,port);
+            mydatagramm->setData(LimitedDataMessage,QString("%1").arg(j-i-1),ui->MessageLineEdit->text().mid(i*n,n));
             DatagrammBuffer.enqueue(mydatagramm->toByteArr());
             IPBuffer.enqueue(addr.toString());
             PortBuffer.enqueue(port);
@@ -181,25 +211,35 @@ void MainWindow::sendmess(int k, int n, QHostAddress addr,quint16 port){
 
         break;
      case ReceiptMessage://для квитанции получения
-        mydatagramm->setData(ReceiptMessage,QString(j),"",addr,port);
+        mydatagramm->setData(ReceiptMessage,QString(j),"");
         DatagrammBuffer.enqueue(mydatagramm->toByteArr());
         IPBuffer.enqueue(addr.toString());
         PortBuffer.enqueue(port);
         break;
     case FileMessage://для передачи файлов
-        if (n==0){n=8192;}
+        if (n==0){n=8100;}
         file.setFileName(ui->FilePathLineEdit->text());
-        j=file.size()/n+1;
+        j=file.size()/n;
         file.open(QIODevice::ReadOnly);
         transmit.setDevice(&file);
         while(!file.atEnd()){;
-            mydatagramm->setData(FileMessage,QString(j),transmit.read(n),addr,port);
+            mydatagramm->setData(FileMessage,QString(j),transmit.read(n));
             DatagrammBuffer.enqueue(mydatagramm->toByteArr());
             IPBuffer.enqueue(addr.toString());
             PortBuffer.enqueue(port);
         }
-        mydatagramm->setData(FileMessage,QString(j+1),"EndOfFile",addr,port);
+        mydatagramm->setData(FileMessage,QString(j+1),"EndOfFile");
         break;
+    case ReqvestMess:
+        mydatagramm->setData(ReqvestMess,QString(n),"");
+        DatagrammBuffer.enqueue(mydatagramm->toByteArr());
+        IPBuffer.enqueue(addr.toString());
+        PortBuffer.enqueue(port);
+    case ReqvestMessAnsv:
+        mydatagramm->setData(ReqvestMessAnsv,QString(n), QString(DatagrammPrevios.takeAt(n)));
+        DatagrammBuffer.enqueue(mydatagramm->toByteArr());
+        IPBuffer.enqueue(addr.toString());
+        PortBuffer.enqueue(port);
     default:
         ui->chatTextBrowser->append("errorMes");
         break;
@@ -220,14 +260,11 @@ void MainWindow::on_scanButton_clicked()
 
 void MainWindow::on_ManualSetButton_myport_clicked()
 {
-    //if(myport=ui->LineEditManualSet_myport->text().toInt()<64000){
     myport=ui->LineEditManualSet_myport->text().toShort();
     udps->close();
     udps->bind(QHostAddress::AnyIPv4,myport);
     connect(udps,SIGNAL(readyRead()),SLOT(Read()));
     sendmess(ScanMessage,0,QHostAddress("192.168.1.255"),myport);
-    //}
-    //else {ui->LineEditManualSet_myport->text()="PortErr";}
 }
 
 void MainWindow::on_ManualSetButton_port_clicked()
@@ -235,14 +272,7 @@ void MainWindow::on_ManualSetButton_port_clicked()
     AMport=ui->LineEditManualSet_port->text().toShort();
 }
 
-void MainWindow::TimrOut(){
-    if(!DatagrammBuffer.isEmpty()){
-        QByteArray datagramm(DatagrammBuffer.dequeue());
-        udps->writeDatagram(datagramm,QHostAddress(IPBuffer.dequeue()),PortBuffer.dequeue());
 
-
-    }
-}
 void MainWindow::on_sendFileButton_clicked()
 {
     QHostAddress addr;
